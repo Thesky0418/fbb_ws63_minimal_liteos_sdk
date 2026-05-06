@@ -3,15 +3,11 @@
 # Copyright (c) HiSilicon (Shanghai) Technologies Co., Ltd. 2022-2022. All rights reserved.
 
 import os
-import json
 import sys
 import platform
-import subprocess
 import shutil
-import re
 
-from utils.build_utils import root_path, exec_shell, compare_bin, output_root
-from utils.indie_upgrade_utils import make_indie_upg_src, dump_indie_upg_check_file
+from utils.build_utils import root_path, exec_shell, compare_bin
 
 from typing import Dict, Any
 from enviroment import all_target
@@ -21,42 +17,6 @@ SCRIPT_DIR = os.path.abspath(os.path.dirname(__file__))
 def do_cmd(target_name: str, hook_name: str, env: Dict[str, Any])->bool:
     python_path = sys.executable
     print("python path: ", python_path)
-
-    # 生成接口映射表
-    if hook_name == 'build_pre' and "CONFIG_SUPPORT_HILINK_INDIE_UPGRADE" in env.get("defines"):
-        if not make_indie_upg_src():
-            return False
-
-
-    # sdk中执行sample的编译守护
-    if hook_name == 'build_pre' and env.get('build_type', '') == 'GuardSDKSample':
-        print("==================env==================")
-        for k, v in env.items():
-            print(f"{k}:{v}")
-        print("==================env==================")
-        # 生成sdk
-        build_sdk()
-        # 切换当前工作目录
-        cwd = os.getcwd()
-        in_sdk_root = os.path.join(output_root,'package', 'ws63','sdk')
-        os.chdir(in_sdk_root)
-        # 在sdk中按设定的menuconfig配置编译
-        guard_sample(target_name, env)
- 
-        os.chdir(cwd)
-
-    if target_name == "ws63-liteos-msmart" and hook_name == 'build_pre':  # 源码编译
-        print("info: start build ws63-liteos-app for msmart in source.")
-        module_handle_script_path = os.path.join(root_path, "application", "samples", "custom", "ws63", "msmart", "build_module.py")
-        errcode = exec_shell([python_path, module_handle_script_path], None, True)
-        return True
-
-    if target_name == "ws63-liteos-app" and not config_check(root_path, "ws63-liteos-msmart") and os.path.isfile(os.path.join(root_path, "application", "samples", "custom", "ws63", "msmart", "build_module.py")) and hook_name == 'build_pre':
-        # SDK 编译 msmart
-        print("info: start build ws63-liteos-app for msmart in SDK.")
-        module_handle_script_path = os.path.join(root_path, "application", "samples", "custom", "ws63", "msmart", "build_module.py")
-        errcode = exec_shell([python_path, module_handle_script_path], None, True)
-        return True
 
     par_list = sys.argv
  
@@ -83,21 +43,6 @@ def do_cmd(target_name: str, hook_name: str, env: Dict[str, Any])->bool:
                 return False
     
     if hook_name == 'build_pre':
-        return True
-
-    if env.get('build_type', '') == 'custom' and hook_name == 'build_post':
-        custom_build_py = os.path.join(root_path, 'application/samples/custom/ws63/custom_build.py')
-        print(custom_build_py)
-        if os.path.isfile(custom_build_py):
-            print("===========================build custom target start========================================")
-            errcode = exec_shell([sys.executable, custom_build_py, target_name], None, True)
-            if errcode != 0:
-                print("custom_build_py failed!")
-                sys.exit(1)
-            print("===========================build custom target  end ========================================")
-
-    if target_name == 'ws63-liteos-mfg' and hook_name == 'build_post':
-        errcode = exec_shell([python_path, "build.py", "ws63-liteos-app"], None, True)
         return True
 
     if hook_name != 'build_post':
@@ -131,9 +76,6 @@ def do_cmd(target_name: str, hook_name: str, env: Dict[str, Any])->bool:
             print("copy_files_to_interim failed!")
             return False
         print("copy_files_to_interim done!")
-
-    if "CONFIG_SUPPORT_HILINK_INDIE_UPGRADE" in env.get("defines"):
-        dump_indie_upg_check_file(os.path.join(root_path, "output", "ws63", "acore", target_name), target_name)
 
     if env.get('pke_rom_bin'):
         # gen pke_rom_bin
@@ -190,78 +132,3 @@ def do_cmd(target_name: str, hook_name: str, env: Dict[str, Any])->bool:
     nv_handle = os.path.join(SCRIPT_DIR, 'nv_handle.py')
     exec_shell([python_path, nv_handle], None, True)
     return True
-
-
-def config_check(root_path, target_name):
-    config_file_path = os.path.join(root_path, "build", "config", "target_config", "ws63", "config.py")
-    with open(config_file_path, "r", encoding="utf-8") as f:
-        for i in f:
-            if target_name in i:
-                print(target_name, " in config.py.")
-                return True
-    return False
-
-
-def build_sdk():
-    if os.path.isdir(output_root):
-        shutil.rmtree(output_root)
-    errcode = exec_shell(["python3", "build.py", "pack_ws63_sdk"], None, True)
-    if errcode != 0:
-        print(f"build target pack_ws63_sdk  failed!")
-        sys.exit(1)
-    else:
-        print(f"build target pack_ws63_sdk  success!")
- 
- 
-def guard_sample(target_name, env):
-    cfg_dir = os.path.dirname(SCRIPT_DIR)
-    build_target = env.get('build_target', '')
-    build_target_cop = build_target.replace('-', "_")
-    in_sdk_root = os.path.join(output_root, 'package', 'ws63','sdk')
-    in_sdk_menuconfig_dir = os.path.join(in_sdk_root, 'build', 'config','target_config', env.get('chip'), 'menuconfig', env.get('core'))
-    base_cfg_path = os.path.join(in_sdk_menuconfig_dir, f'{build_target_cop}.config')
-    base_cfg_path_bak = base_cfg_path + ".bak"
-    shutil.move(base_cfg_path, base_cfg_path_bak)
-    in_sdk_output_root = os.path.join(in_sdk_root, 'output')
-    source_fwpkg_dir = os.path.join(in_sdk_output_root, env.get('chip'), 'fwpkg', f'{build_target}')
-    dest_fwpkg_dir = os.path.join(in_sdk_output_root,  env.get('chip'),  'GuardSample', target_name)
-    os.makedirs(dest_fwpkg_dir, exist_ok=True)
-    # 汇总结果，编译sample是否成功
-    build_result_content = []
-    build_result_log_path = os.path.join(dest_fwpkg_dir, "build_result.log")
-
-    for cfg_path in env.get('menuconfigs', []):
-        cfg_base_name = os.path.splitext(os.path.basename(cfg_path))[0]
-        cfg_full_path = os.path.join(cfg_dir, cfg_path)
-        if not os.path.isfile(cfg_full_path):
-            continue
-        shutil.copyfile(cfg_full_path, base_cfg_path)
-        errcode = exec_shell(["python3", "build.py", "-c", build_target], None, True)
-        if errcode != 0:
-            print(f"build target:{target_name}\tusing menuconfig:{cfg_full_path} failed!")
-            build_result_content.append(f"[ERROR] build target:{target_name}\tusing menuconfig:{cfg_full_path} failed!")
-        else:
-            print(f"build target:{target_name}\tusing menuconfig:{cfg_full_path} success!")
-            build_result_content.append(f"[INFO] build target:{target_name}\tusing menuconfig:{cfg_full_path} success!")
- 
-        all_in_one_fwpkg_path = os.path.join(source_fwpkg_dir, f'{build_target}_all.fwpkg')
-        if os.path.isfile(all_in_one_fwpkg_path):
-            dest_fwpkg = os.path.join(dest_fwpkg_dir, f'{cfg_base_name}_all.fwpkg')
-            shutil.copyfile(all_in_one_fwpkg_path, dest_fwpkg)
-        else:
-            print(f"not find {all_in_one_fwpkg_path}!")
-            build_result_content.append(f"[ERROR] not find {all_in_one_fwpkg_path}!")
-            continue
- 
-        load_only_fwpkg_path = os.path.join(source_fwpkg_dir,f'{build_target}_load_only.fwpkg')
-        if os.path.isfile(load_only_fwpkg_path):
-            dest_fwpkg = os.path.join(dest_fwpkg_dir, f'{cfg_base_name}_load_only.fwpkg')
-            shutil.copyfile(load_only_fwpkg_path, dest_fwpkg)
-        else:
-            print(f"not find {load_only_fwpkg_path}!")
-            build_result_content.append(f"[ERROR] not find {load_only_fwpkg_path}!")
-    with open(build_result_log_path, 'w') as w_f:
-        w_f.write("\r\n".join(build_result_content))
-    shutil.move(base_cfg_path_bak, base_cfg_path)
-    print(f"fwpkg is created in :{dest_fwpkg_dir}")
-    os._exit(0)

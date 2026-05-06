@@ -46,6 +46,9 @@
 #define FLASH_ENCRY_ADDR_ALINE 256
 #define FLASH_NO_ENCRY_FLAG    0x3C7896E1
 #define FLASHBOOT_RAM_ADDR     0xA28000
+#define REG_PMU_CMU_CTL_PMU_SIG 0x40003154
+#define PMU_FLASH_SW_EN_BIT     24
+#define FLASH_POWER_STABLE_MS   5
 
 #define FLASH_BOOT_TYPE_REG      0x40000024
 #define FLASH_BOOT_TYPE_REG_MAIN 0xA5A5A5A5
@@ -62,6 +65,12 @@ static uint32_t sfc_flash_init(void)
 {
     return uapi_sfc_init((sfc_flash_config_t *)&sfc_cfg);
 }
+
+static bool sfc_init_ret_usable(uint32_t ret)
+{
+    return (ret == ERRCODE_SUCC || ret == ERRCODE_SFC_FLASH_NOT_SUPPORT || ret == ERRCODE_SFC_DEFAULT_INIT);
+}
+
 static uint32_t sfc_flash_read(uint32_t flash_addr, uint32_t read_size, uint8_t *read_buffer)
 {
     return uapi_sfc_reg_read(flash_addr, read_buffer, read_size);
@@ -87,11 +96,16 @@ static void boot_flash_init(void)
     flash_funcs.erase = sfc_flash_erase;
     boot_regist_flash_cmd(&flash_funcs);
 
+    reg32_setbit(REG_PMU_CMU_CTL_PMU_SIG, PMU_FLASH_SW_EN_BIT);
+    mdelay(FLASH_POWER_STABLE_MS);
+
     uint32_t  ret = sfc_flash_init();
-    if (ret != ERRCODE_SUCC) {
+    if (!sfc_init_ret_usable(ret)) {
         serial_cancel_mute();
         boot_msg1("Flash Init Fail! ret = ", ret);
         serial_set_mute();
+    } else if (ret != ERRCODE_SUCC) {
+        boot_msg1("Flash Init Default! ret = ", ret);
     } else {
         boot_msg0("Flash Init Succ!");
     }

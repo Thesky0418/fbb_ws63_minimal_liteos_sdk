@@ -301,9 +301,12 @@ void log_exception_dump(uint32_t irq_id, exc_context_t *exc_buf_addr)
     fault_type = log_get_fault_type(irq_id);
 #endif
     log_oml_exception_info_send(fault_type, exc_buf_addr);
-#endif
+
     /* Send ram */
     log_oml_memory_dump();
+#else
+    PRINT("[Exception] binary dump disabled\r\n");
+#endif
 }
 #else
 void log_exception_dump(uint32_t int_id, uint32_t reason, uint32_t addr, exc_info_t *exc_info)

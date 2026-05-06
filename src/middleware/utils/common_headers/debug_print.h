@@ -47,7 +47,11 @@ void print_exc(const char *str, ...);
 #if CORE == BT
     #define PRINT(fmt, arg...) print_str("BT|" fmt, ##arg)
 #elif CORE == APPS
+#if defined(RAW_APP_PRINT)
+    #define PRINT(fmt, arg...) print_str(fmt, ##arg)
+#else
     #define PRINT(fmt, arg...) print_str("APP|" fmt, ##arg)
+#endif
 #elif CORE == SECURITY
     #define PRINT(fmt, arg...) print_str("SEC|" fmt, ##arg)
 #elif CORE == GNSS

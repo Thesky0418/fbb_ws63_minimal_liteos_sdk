@@ -1,1 +1,0 @@
-set(SOURCES "${SOURCES}" "${CMAKE_CURRENT_SOURCE_DIR}/motion_detection_sample.c" PARENT_SCOPE)

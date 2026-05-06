@@ -1,1 +1,0 @@
-set(SOURCES "${SOURCES}" "${CMAKE_CURRENT_SOURCE_DIR}/timer_blinky.c" PARENT_SCOPE)

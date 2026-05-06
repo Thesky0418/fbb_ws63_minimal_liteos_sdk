@@ -24,7 +24,6 @@ pktbin = "../../../../../output/ws63/pktbin"
 inter_bin = "../../../../../interim_binary/ws63/bin/boot_bin"
 efuse_csv = "../script/efuse.csv"
 boot_bin = "../../../../../output/ws63/acore/boot_bin"
-mfg_bin = "../../../../../application/ws63/ws63_liteos_mfg"
 
 def merge(file_first, file_second, file_out):
     if "windows" in platform.platform().lower():
@@ -127,9 +126,6 @@ if not os.path.isdir(boot_bin):
     shutil.copytree(inter_bin, boot_bin)
 
 shutil.copy(os.path.join(inter_bin, "ssb.bin"), boot_bin)
-
-if os.path.isfile(os.path.join(mfg_bin, "ws63-liteos-mfg.bin")):
-    shutil.copy(os.path.join(mfg_bin, "ws63-liteos-mfg.bin"), boot_bin)
 
 #sign ssb
 if os.path.isfile(os.path.join(out_put, "ws63-ssb/ssb.bin")):
@@ -236,8 +232,6 @@ sign_app(os.path.join(out_put, "ws63-liteos-btc-only-asic/ws63-liteos-btc-only-a
 
 sign_app(os.path.join(out_put, "ws63-liteos-gle-sparklyzer/ws63-liteos-gle-sparklyzer.bin"), "0", "sparklyzer_btc_only_app_bin_ecc.cfg")
 
-sign_app(os.path.join(out_put, "ws63-liteos-mfg/ws63-liteos-mfg.bin"), "0", "liteos_mfg_bin_ecc.cfg")
-
 sign_app(os.path.join(out_put, "ws63-liteos-perf/ws63-liteos-perf.bin"), "0", "liteos_perf_bin_ecc.cfg")
 
 sign_app(os.path.join(out_put, "ws63-liteos-app-asic/ws63-liteos-app-asic.bin"), "0", "liteos_app_asic_bin_ecc.cfg")
@@ -261,8 +255,6 @@ sign_app(os.path.join(out_put, "ws63-liteos-bgle-all/ws63-liteos-bgle-all.bin"),
 sign_app(os.path.join(out_put, "ws63-liteos-bgle-all-asic/ws63-liteos-bgle-all-asic.bin"), "0", "liteos_bgle_all_asic_bin_ecc.cfg")
 
 sign_app(os.path.join(out_put, "ws63-liteos-testsuite-radar/ws63-liteos-testsuite-radar.bin"), "0", "liteos_testsuite_radar_bin_ecc.cfg")
-
-sign_app(os.path.join(boot_bin, "ws63-liteos-mfg.bin"), "0", "liteos_mfg_bin_factory_ecc.cfg")
 
 move_file(cwd_path, os.path.join(out_put, "param_bin"), "params.bin")
 # clean middle files

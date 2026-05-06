@@ -1,4 +1,0 @@
-set(SOURCES_LIST
-    ${CMAKE_CURRENT_SOURCE_DIR}/beetle_df9gms_sample.c
-)
-set(SOURCES "${SOURCES}" ${SOURCES_LIST} PARENT_SCOPE)

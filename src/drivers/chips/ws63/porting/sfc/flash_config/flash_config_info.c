@@ -113,7 +113,7 @@ static const flash_spi_info_t g_flash_spi_info_list[] = {
 
 STATIC const flash_spi_info_t g_flash_spi_unknown_info = {
     FLASH_UNKOWN,
-    FLASH_SIZE_512KB,
+    FLASH_SIZE_8MB,
     FLASH_ERASE_CMD_NUM_3,
     (spi_opreation_t *)g_default_read_cmds,
     (spi_opreation_t *)g_default_write_cmds,

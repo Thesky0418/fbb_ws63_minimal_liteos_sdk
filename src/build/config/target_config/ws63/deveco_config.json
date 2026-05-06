@@ -19,10 +19,6 @@
                         "ws63-liteos-app": {
                             "build_command": "./build.py",
                             "build_argv": "ws63-liteos-app"
-                        },
-                        "ws63-liteos-app-radar": {
-                            "build_command": "./build.py",
-                            "build_argv": "ws63-liteos-app-radar"
                         }
                     }
                 },

@@ -38,6 +38,11 @@ static uint32_t sfc_flash_init(void)
     return uapi_sfc_init((sfc_flash_config_t *)&sfc_cfg);
 }
 
+static bool sfc_init_ret_usable(uint32_t ret)
+{
+    return (ret == ERRCODE_SUCC || ret == ERRCODE_SFC_FLASH_NOT_SUPPORT || ret == ERRCODE_SFC_DEFAULT_INIT);
+}
+
 static uint32_t sfc_flash_read(uint32_t flash_addr, uint32_t read_size, uint8_t *read_buffer)
 {
     return uapi_sfc_reg_read(flash_addr, read_buffer, read_size);
@@ -90,8 +95,10 @@ static void boot_flash_init(void)
     mdelay(DELAY_5MS);
 
     uint32_t ret = sfc_flash_init();
-    if (ret != ERRCODE_SUCC) {
+    if (!sfc_init_ret_usable(ret)) {
         boot_msg1("Flash Init Fail! ret = ", ret);
+    } else if (ret != ERRCODE_SUCC) {
+        boot_msg1("Flash Init Default! ret = ", ret);
     } else {
         boot_msg0("Flash Init Succ!");
     }
